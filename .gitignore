@@ -1,0 +1,18 @@
+# Drift output (verification results, JUnit reports)
+output/
+
+# Generated protobuf stubs — regenerate with `make proto`
+server/routeguide_pb2.py
+server/routeguide_pb2.pyi
+server/routeguide_pb2_grpc.py
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local environment overrides
+.env
+
+# OS
+.DS_Store

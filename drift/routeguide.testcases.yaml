@@ -1,0 +1,287 @@
+# yaml-language-server: $schema=https://download.pactflow.io/drift/schemas/drift.testcases.v1.schema.json
+
+# Drift test cases for the RouteGuide gRPC service.
+#
+# For each operation, Drift will:
+#   1. Look up the RPC in routeguide.proto (via the `grpc` plugin)
+#   2. Encode `parameters.request.body` as the RPC's protobuf request message
+#   3. Send it to the running server over HTTP/2
+#   4. Decode the response and assert it matches `expected.response`
+#
+# Sources:
+#   routeguide — the proto file, the source of truth for the API
+#   functions  — Lua helpers referenced with the ${functions:<name>} syntax
+
+drift-testcase-file: v1
+title: "RouteGuide gRPC Example"
+description: |
+  Verifies the RouteGuide service against routeguide.proto. Covers scalar,
+  nested, enum, repeated, map and oneof fields; unary, server-streaming,
+  client-streaming and bidi-streaming RPCs; and gRPC error statuses.
+
+sources:
+  - name: routeguide
+    path: ../routeguide.proto
+  - name: functions
+    path: routeguide.lua
+
+plugins:
+  - name: grpc          # encodes/decodes protobuf and drives the gRPC calls
+  - name: junit-output  # writes a JUnit XML report to output/reports/junit/
+
+operations:
+  # ── GetFeature — unary RPC, nested messages ──────────────────────────────
+
+  GetFeature_KnownLocation:
+    target: routeguide:routeguide.RouteGuide/GetFeature
+    description: "Returns a named feature at a known location"
+    parameters:
+      request:
+        body:
+          latitude: 407838351
+          longitude: -746143763
+    expected:
+      response:
+        body:
+          name: "Patriots Path, Mendham, NJ 07945, USA"
+          location:
+            # A Lua function asserts the field is present rather than pinning
+            # the test to an exact value.
+            latitude: ${functions:required}
+            longitude: -746143763
+
+  GetFeature_AnotherKnownLocation:
+    target: routeguide:routeguide.RouteGuide/GetFeature
+    description: "Returns a different named feature"
+    parameters:
+      request:
+        body:
+          latitude: 413628156
+          longitude: -749015468
+    expected:
+      response:
+        body:
+          name: "U.S. 6, Shohola, PA 18458, USA"
+
+  GetFeature_UnknownLocation:
+    target: routeguide:routeguide.RouteGuide/GetFeature
+    description: "Returns an empty name when no feature exists at the location"
+    parameters:
+      request:
+        body:
+          latitude: 0
+          longitude: 0
+    expected:
+      response:
+        body:
+          name: ""
+
+  # ── GetFeatureStrict — gRPC error statuses ───────────────────────────────
+
+  GetFeatureStrict_NotFound:
+    target: routeguide:routeguide.RouteGuide/GetFeatureStrict
+    description: "Returns gRPC NOT_FOUND for unknown coordinates"
+    parameters:
+      request:
+        body:
+          latitude: 0
+          longitude: 0
+    expected:
+      response:
+        grpc-status: NOT_FOUND
+        grpc-message: "feature not found"
+
+  GetFeatureStrict_NotFound_MessageContains:
+    target: routeguide:routeguide.RouteGuide/GetFeatureStrict
+    description: "Asserts the error message with a `contains` matcher"
+    parameters:
+      request:
+        body:
+          latitude: 0
+          longitude: 0
+    expected:
+      response:
+        grpc-status: NOT_FOUND
+        grpc-message:
+          contains: "not found"
+
+  # ── GetRatedFeature — enum fields ────────────────────────────────────────
+
+  GetRatedFeature_KnownLocation:
+    target: routeguide:routeguide.RouteGuide/GetRatedFeature
+    description: "Known features are rated HIGH — enums are matched by name"
+    parameters:
+      request:
+        body:
+          latitude: 407838351
+          longitude: -746143763
+    expected:
+      response:
+        body:
+          name: "Patriots Path, Mendham, NJ 07945, USA"
+          quality: "HIGH"
+
+  GetRatedFeature_UnknownLocation:
+    target: routeguide:routeguide.RouteGuide/GetRatedFeature
+    description: "Unknown locations return the zero-value enum"
+    parameters:
+      request:
+        body:
+          latitude: 0
+          longitude: 0
+    expected:
+      response:
+        body:
+          quality: "FEATURE_QUALITY_UNSPECIFIED"
+
+  # ── BatchLookup — repeated fields ────────────────────────────────────────
+
+  BatchLookup_TwoKnownLocations:
+    target: routeguide:routeguide.RouteGuide/BatchLookup
+    description: "Repeated Point request; repeated Feature response"
+    parameters:
+      request:
+        body:
+          locations:
+            - latitude: 407838351
+              longitude: -746143763
+            - latitude: 413628156
+              longitude: -749015468
+    expected:
+      response:
+        body:
+          features:
+            - name: "Patriots Path, Mendham, NJ 07945, USA"
+            - name: "U.S. 6, Shohola, PA 18458, USA"
+
+  BatchLookup_MixedLocations:
+    target: routeguide:routeguide.RouteGuide/BatchLookup
+    description: "One known and one unknown location — the second has an empty name"
+    parameters:
+      request:
+        body:
+          locations:
+            - latitude: 407838351
+              longitude: -746143763
+            - latitude: 0
+              longitude: 0
+    expected:
+      response:
+        body:
+          features:
+            - name: "Patriots Path, Mendham, NJ 07945, USA"
+            - name: ""
+
+  # ── GetFeatureMetadata — map and oneof fields ────────────────────────────
+
+  GetFeatureMetadata_KnownLocation:
+    target: routeguide:routeguide.RouteGuide/GetFeatureMetadata
+    description: "Known features return map<string,string> properties"
+    parameters:
+      request:
+        body:
+          latitude: 407838351
+          longitude: -746143763
+    expected:
+      response:
+        body:
+          name: "Patriots Path, Mendham, NJ 07945, USA"
+          properties:
+            category: "landmark"
+            source: "routeguide-db"
+
+  GetFeatureMetadata_OneofSourceId:
+    target: routeguide:routeguide.RouteGuide/GetFeatureMetadata
+    description: "Known locations set the `source_id` branch of the oneof"
+    parameters:
+      request:
+        body:
+          latitude: 407838351
+          longitude: -746143763
+    expected:
+      response:
+        body:
+          source_id: "db-entry"
+
+  GetFeatureMetadata_OneofSourceRank:
+    target: routeguide:routeguide.RouteGuide/GetFeatureMetadata
+    description: "Unknown locations set the `source_rank` branch of the oneof"
+    parameters:
+      request:
+        body:
+          latitude: 0
+          longitude: 0
+    expected:
+      response:
+        body:
+          source_rank: 0
+
+  # ── ListFeatures — server-streaming ──────────────────────────────────────
+
+  ListFeatures_SinglePointStream:
+    target: routeguide:routeguide.RouteGuide/ListFeatures
+    description: "Server-streaming response for a rectangle around one known feature"
+    parameters:
+      request:
+        body:
+          lo:
+            latitude: 407838351
+            longitude: -746143763
+          hi:
+            latitude: 407838351
+            longitude: -746143763
+    expected:
+      # A streamed response is a list; items are asserted in order by index.
+      response:
+        body:
+          - name: "Patriots Path, Mendham, NJ 07945, USA"
+            location:
+              latitude: 407838351
+              longitude: -746143763
+
+  # ── RecordRoute — client-streaming ───────────────────────────────────────
+
+  RecordRoute_BasicClientStream:
+    target: routeguide:routeguide.RouteGuide/RecordRoute
+    description: "Client-streaming request of two known points returns a unary summary"
+    parameters:
+      # A list request body is encoded as an ordered stream of messages.
+      request:
+        body:
+          - latitude: 407838351
+            longitude: -746143763
+          - latitude: 413628156
+            longitude: -749015468
+    expected:
+      response:
+        body:
+          point_count: 2
+          feature_count: 2
+
+  # ── RouteChat — bidi-streaming ───────────────────────────────────────────
+
+  RouteChat_BidiEcho:
+    target: routeguide:routeguide.RouteGuide/RouteChat
+    description: "Bidirectional stream echoes ordered route notes"
+    parameters:
+      request:
+        body:
+          - location:
+              latitude: 407838351
+              longitude: -746143763
+            message: "first"
+          - location:
+              latitude: 413628156
+              longitude: -749015468
+            message: "second"
+    expected:
+      response:
+        body:
+          - location:
+              latitude: 407838351
+              longitude: -746143763
+            message: "echo: first"
+          - location:
+              latitude: 413628156
+              longitude: -749015468
+            message: "echo: second"

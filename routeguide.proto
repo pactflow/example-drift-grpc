@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package routeguide;
+
+// Quality rating of a known feature.
+enum FeatureQuality {
+  FEATURE_QUALITY_UNSPECIFIED = 0;
+  LOW    = 1;
+  MEDIUM = 2;
+  HIGH   = 3;
+}
+
+// A feature names something at a given point and carries a quality rating.
+message RatedFeature {
+  string         name     = 1;
+  Point          location = 2;
+  FeatureQuality quality  = 3;
+}
+
+// Arbitrary key/value metadata attached to a feature (e.g. "category" → "park").
+message FeatureMetadata {
+  string              name       = 1;
+  Point               location   = 2;
+  map<string, string> properties = 3;
+  oneof selector {
+    string source_id = 4;
+    int32 source_rank = 5;
+  }
+}
+
+// A batch lookup request carrying multiple points.
+message BatchLookupRequest {
+  repeated Point locations = 1;
+}
+
+// A batch lookup response carrying one Feature per requested Point.
+message BatchLookupResponse {
+  repeated Feature features = 1;
+}
+
+// Interface exported by the server.
+service RouteGuide {
+  // A simple RPC.
+  // Obtains the feature at a given position.
+  // A feature with an empty name is returned if there's no feature at the given position.
+  rpc GetFeature(Point) returns (Feature) {}
+
+  // A strict lookup RPC.
+  // Returns NOT_FOUND when there is no feature at the requested point.
+  rpc GetFeatureStrict(Point) returns (Feature) {}
+
+  // Obtains a quality-rated feature at a given position.
+  // Named features are rated HIGH, unnamed locations are FEATURE_QUALITY_UNSPECIFIED.
+  rpc GetRatedFeature(Point) returns (RatedFeature) {}
+
+  // Looks up multiple locations in a single unary call (demonstrates repeated fields).
+  rpc BatchLookup(BatchLookupRequest) returns (BatchLookupResponse) {}
+
+  // Returns metadata key/value pairs attached to a feature (demonstrates map fields).
+  rpc GetFeatureMetadata(Point) returns (FeatureMetadata) {}
+
+  // A server-to-client streaming RPC.
+  // Obtains the Features available within the given Rectangle.
+  rpc ListFeatures(Rectangle) returns (stream Feature) {}
+
+  // A client-to-server streaming RPC.
+  // Accepts a stream of Points on a route being traversed, returning a RouteSummary when traversal is completed.
+  rpc RecordRoute(stream Point) returns (RouteSummary) {}
+
+  // A Bidirectional streaming RPC.
+  // Accepts a stream of RouteNotes sent while a route is being traversed, while receiving other RouteNotes.
+  rpc RouteChat(stream RouteNote) returns (stream RouteNote) {}
+}
+
+// Points are represented as latitude-longitude pairs in the E7 representation
+// (degrees multiplied by 10**7 and rounded to the nearest integer).
+// Latitudes should be in the range +/- 90 degrees and longitude should be in the range +/- 180 degrees (inclusive).
+message Point {
+  int32 latitude = 1;
+  int32 longitude = 2;
+}
+
+// A latitude-longitude rectangle, represented as two diagonally opposite points "lo" and "hi".
+message Rectangle {
+  Point lo = 1;
+  Point hi = 2;
+}
+
+// A feature names something at a given point.
+// If a feature could not be named, the name is empty.
+message Feature {
+  string name = 1;
+  Point location = 2;
+}
+
+// A RouteNote is a message sent while at a given point.
+message RouteNote {
+  Point location = 1;
+  string message = 2;
+}
+
+// A RouteSummary is received in response to a RecordRoute rpc.
+// It contains the number of individual points received, the number of
+// detected features, and the total distance covered as the cumulative sum of
+// the distance between each point.
+message RouteSummary {
+  int32 point_count = 1;
+  int32 feature_count = 2;
+  int32 distance = 3;
+  int32 elapsed_time = 4;
+}
