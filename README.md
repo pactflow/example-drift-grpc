@@ -143,8 +143,11 @@ and pull request. It needs two settings on the repository:
 
 | Setting | Type | Value |
 |---|---|---|
-| `PACT_BROKER_BASE_URL` | Variable | Your PactFlow URL, e.g. `https://you.pactflow.io` |
+| `PACT_BROKER_BASE_URL` | Variable (a secret also works) | Your PactFlow URL, e.g. `https://you.pactflow.io` |
 | `PACT_BROKER_TOKEN` | Secret | A PactFlow API token with write access |
+
+A variable is preferable for the URL — it isn't a credential, and leaving it
+unmasked in the logs makes a misconfiguration obvious instead of showing `***`.
 
 ## What the test cases cover
 
