@@ -26,8 +26,7 @@ sources:
     path: routeguide.lua
 
 plugins:
-  - name: grpc          # encodes/decodes protobuf and drives the gRPC calls
-  - name: junit-output  # writes a JUnit XML report to output/reports/junit/
+  - name: grpc  # encodes/decodes protobuf and drives the gRPC calls
 
 operations:
   # ── GetFeature — unary RPC, nested messages ──────────────────────────────

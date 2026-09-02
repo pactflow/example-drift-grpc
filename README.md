@@ -68,7 +68,7 @@ proto file by `make proto` and are deliberately not committed.
 
 - Python 3.9+
 - [Drift](https://docs.pactflow.io/docs/drift/getting-started/installation),
-  with the `grpc` and `junit-output` plugins installed
+  with the `grpc` plugin installed
 - A PactFlow account with Drift enabled, and `PACT_BROKER_BASE_URL` /
   `PACT_BROKER_TOKEN` set in your environment
 - Docker (only for publishing to PactFlow)
@@ -83,8 +83,8 @@ This creates a virtualenv, generates the gRPC stubs, starts the server, runs
 `drift verify` against it, and shuts the server down. Results are written to
 `output/`:
 
-- `output/results/verification.*.result` — the bundle published to PactFlow
-- `output/reports/junit/verification-result.xml` — a JUnit report for CI
+- `output/results/verification.*.result` — the bundle published to PactFlow,
+  and uploaded as a CI artifact
 
 To run the server on a different port (the default is `50051`):
 
