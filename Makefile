@@ -70,7 +70,8 @@ test: $(STUBS) clean
 	drift verify \
 	  --server-url $(SERVER_URL) \
 	  --test-files drift/routeguide.testcases.yaml \
-	  --output-dir $(OUTPUT_DIR)
+	  --output-dir $(OUTPUT_DIR) \
+	  --generate-result
 
 ## =====================
 ## CI
