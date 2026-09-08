@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/pactflow/example-drift-grpc/actions/workflows/build.yml/badge.svg)](https://github.com/pactflow/example-drift-grpc/actions/workflows/build.yml)
 
-An example of using [Drift](https://docs.pactflow.io/docs/drift) to verify that a
+An example of using [Drift](https://support.smartbear.com/swagger/contract-testing/docs/en/drift.html) to verify that a
 gRPC server actually does what its `.proto` file says it does — and to publish
 that proof to [PactFlow](https://pactflow.io).
 
@@ -67,7 +67,7 @@ proto file by `make proto` and are deliberately not committed.
 ### Prerequisites
 
 - Python 3.9+
-- [Drift](https://docs.pactflow.io/docs/drift/getting-started/installation),
+- [Drift](https://support.smartbear.com/swagger/contract-testing/docs/en/drift.html),
   with the `grpc` plugin installed
 - A PactFlow account with Drift enabled, and `PACT_BROKER_BASE_URL` /
   `PACT_BROKER_TOKEN` set in your environment
@@ -225,11 +225,6 @@ Break the contract and watch Drift catch it. Change `GetRatedFeature` in
 GetRatedFeature_KnownLocation FAILED
   expected quality to equal "HIGH" but was "MEDIUM"
 ```
-
-## Related examples
-
-- [example-bi-directional-provider-drift](https://github.com/pactflow/example-bi-directional-provider-drift) — Drift verifying an OpenAPI provider, wired into bi-directional contract testing
-- [Drift documentation](https://docs.pactflow.io/docs/drift)
 
 ## License
 
